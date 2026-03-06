@@ -1,0 +1,49 @@
+generator client { provider = "prisma-client-js" }
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceStatus { PENDING SEEN CONFIRMED EXPIRED }
+enum KaspaNetwork { MAINNET TESTNET_TN10 }
+
+type Json = Json
+
+model Invoice {
+  id            String        @id @default(cuid())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  network       KaspaNetwork  @default(TESTNET_TN10)
+
+  // Multi-asset support
+  assetKey      String        @default("KAS")
+  assetSymbol   String        @default("KAS")
+  providerKey  String        @default("public")
+  amount        Decimal       @db.Decimal(30,12)
+
+  memo          String?
+  address       String        @unique
+
+  status        InvoiceStatus @default(PENDING)
+  txId          String?
+  confirmations Int           @default(0)
+
+  seenAt        DateTime?
+  confirmedAt   DateTime?
+  expiresAt     DateTime?
+
+  events        InvoiceEvent[]
+}
+
+model InvoiceEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  type      String
+  payload   Json?
+}
